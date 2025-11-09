@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Portal de Productos</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" />
+  <style>
+    :root {
+      --primary: #0077ff;
+      --danger: #ff4b5c;
+      --bg: #f4f7fb;
+      --card: #ffffff;
+      --text: #222;
+    }
+
+    body {
+      font-family: "Poppins", sans-serif;
+      margin: 0;
+      padding: 0;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    header {
+      background: var(--primary);
+      color: white;
+      text-align: center;
+      padding: 20px 10px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+
+    h1 { margin: 0; font-weight: 600; }
+
+    main {
+      max-width: 900px;
+      margin: 30px auto;
+      background: var(--card);
+      padding: 20px 30px;
+      border-radius: 12px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+    }
+
+    #userInfo {
+      text-align: center;
+      margin-bottom: 15px;
+      font-weight: 500;
+    }
+
+    .top-buttons {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 25px;
+    }
+
+    button {
+      cursor: pointer;
+      border: none;
+      border-radius: 6px;
+      padding: 10px 16px;
+      font-weight: 500;
+      transition: 0.2s ease;
+    }
+
+    .primary-btn {
+      background: linear-gradient(45deg, #0077ff, #00b8ff);
+      color: white;
+    }
+
+    .primary-btn:hover { opacity: 0.9; transform: translateY(-1px); }
+
+    .danger-btn {
+      background: linear-gradient(45deg, #ff4b5c, #ff6b81);
+      color: white;
+    }
+
+    ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+      gap: 15px;
+    }
+
+    li {
+      background: var(--card);
+      border-radius: 10px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+      padding: 15px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transition: 0.3s;
+    }
+
+    li:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
+
+    li strong { color: var(--primary); }
+
+    .actions {
+      margin-top: 10px;
+      display: flex;
+      gap: 6px;
+    }
+
+    .edit-btn { background: #0077ff; color: white; }
+    .del-btn { background: #ff4b5c; color: white; }
+
+    /* --- Modal general --- */
+    #modal, #createModal {
+      display: none;
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0,0,0,0.6);
+      justify-content: center;
+      align-items: center;
+      animation: fadeIn 0.3s ease;
+    }
+
+    #modalContent, #createModalContent {
+      background: white;
+      padding: 25px;
+      border-radius: 12px;
+      width: 320px;
+      text-align: center;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+      animation: slideUp 0.4s ease;
+    }
+
+    input {
+      width: 100%;
+      padding: 8px;
+      margin: 6px 0;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+      font-family: inherit;
+      font-size: 1rem;
+    }
+
+    input:invalid {
+      border-color: #ff4b5c;
+    }
+
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes slideUp {
+      from { transform: translateY(20px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>🛒 Portal de Productos</h1>
+  </header>
+
+  <main>
+    <div id="userInfo"></div>
+
+    <div class="top-buttons">
+      <button id="logout" class="danger-btn">Cerrar sesión</button>
+      <button onclick="window.location.href='chat.html'" class="primary-btn">💬 Chat en tiempo real</button>
+      <button id="newProduct" class="primary-btn" style="display:none;">➕ Crear producto</button>
+    </div>
+
+    <h2>Lista de productos</h2>
+    <ul id="productList"></ul>
+  </main>
+
+  <!-- MODAL EDITAR -->
+  <div id="modal">
+    <div id="modalContent">
+      <h3>Editar producto</h3>
+      <input type="text" id="editName" />
+      <input type="text" id="editDescription" />
+      <input type="text" id="editPrice" placeholder="Precio (€)" />
+      <input type="text" id="editStock" placeholder="Stock disponible" />
+      <button id="saveEdit" class="primary-btn">💾 Guardar</button>
+      <button id="cancelEdit" class="danger-btn">❌ Cancelar</button>
+    </div>
+  </div>
+
+  <!-- MODAL CREAR -->
+  <div id="createModal">
+    <div id="createModalContent">
+      <h3>Nuevo producto</h3>
+      <input type="text" id="newName" placeholder="Nombre" required />
+      <input type="text" id="newDescription" placeholder="Descripción" required />
+      <input type="text" id="newPrice" placeholder="Precio (€)" required />
+      <input type="text" id="newStock" placeholder="Stock disponible" required />
+      <button id="createProduct" class="primary-btn">✅ Crear</button>
+      <button id="cancelCreate" class="danger-btn">❌ Cancelar</button>
+    </div>
+  </div>
+
+  <script>
+    const token = localStorage.getItem("token");
+    const user = JSON.parse(localStorage.getItem("user"));
+    if (!token || !user) {
+      alert("Debes iniciar sesión primero.");
+      window.location.href = "index.html";
+    }
+
+    document.getElementById("userInfo").innerText = `👋 Bienvenido, ${user.username} (${user.role})`;
+
+    const productList = document.getElementById("productList");
+    const modal = document.getElementById("modal");
+    const createModal = document.getElementById("createModal");
+
+    if (user.role === "admin") document.getElementById("newProduct").style.display = "inline-block";
+
+    document.getElementById("logout").addEventListener("click", () => {
+      localStorage.clear();
+      window.location.href = "index.html";
+    });
+
+    // 🔹 VALIDACIÓN DE TECLADO
+    function allowOnlyNumbersAndDot(input) {
+      input.addEventListener("keydown", (e) => {
+        const allowedKeys = [
+          "Backspace", "Delete", "Tab", "Escape", "Enter", 
+          "ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"
+        ];
+        const isNumber = e.key >= "0" && e.key <= "9";
+        const isDot = e.key === "." && !input.value.includes(".");
+        if (!isNumber && !isDot && !allowedKeys.includes(e.key)) e.preventDefault();
+      });
+    }
+
+    function allowOnlyIntegers(input) {
+      input.addEventListener("keydown", (e) => {
+        const allowedKeys = [
+          "Backspace", "Delete", "Tab", "Escape", "Enter", 
+          "ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"
+        ];
+        const isNumber = e.key >= "0" && e.key <= "9";
+        if (!isNumber && !allowedKeys.includes(e.key)) e.preventDefault();
+      });
+    }
+
+    ["newPrice", "editPrice"].forEach(id => allowOnlyNumbersAndDot(document.getElementById(id)));
+    ["newStock", "editStock"].forEach(id => allowOnlyIntegers(document.getElementById(id)));
+
+    // --- Cargar productos ---
+    async function loadProducts() {
+      const res = await fetch("/api/products", { headers: { Authorization: "Bearer " + token } });
+      const data = await res.json();
+      productList.innerHTML = "";
+
+      data.forEach((p) => {
+        const li = document.createElement("li");
+        li.innerHTML = `<strong>${p.name}</strong><br>${p.description}<br><small>${p.price}€ (${p.stock} uds)</small>`;
+
+        if (user.role === "admin") {
+          const actions = document.createElement("div");
+          actions.classList.add("actions");
+
+          const edit = document.createElement("button");
+          edit.textContent = "✏️";
+          edit.classList.add("edit-btn");
+          edit.onclick = () => openEditModal(p);
+
+          const del = document.createElement("button");
+          del.textContent = "🗑️";
+          del.classList.add("del-btn");
+          del.onclick = async () => {
+            if (confirm("¿Eliminar este producto?")) {
+              await fetch("/api/products/" + p._id, {
+                method: "DELETE",
+                headers: { Authorization: "Bearer " + token },
+              });
+              loadProducts();
+            }
+          };
+
+          actions.appendChild(edit);
+          actions.appendChild(del);
+          li.appendChild(actions);
+        }
+
+        productList.appendChild(li);
+      });
+    }
+
+    loadProducts();
+
+    // --- Modal editar ---
+    let currentProduct = null;
+    function openEditModal(product) {
+      currentProduct = product;
+      document.getElementById("editName").value = product.name;
+      document.getElementById("editDescription").value = product.description;
+      document.getElementById("editPrice").value = product.price;
+      document.getElementById("editStock").value = product.stock;
+      modal.style.display = "flex";
+    }
+
+    document.getElementById("cancelEdit").onclick = () => modal.style.display = "none";
+
+    document.getElementById("saveEdit").onclick = async () => {
+      const price = parseFloat(document.getElementById("editPrice").value);
+      const stock = parseInt(document.getElementById("editStock").value);
+
+      if (isNaN(price) || price < 0.01 || isNaN(stock) || stock < 0) return;
+
+      const updated = {
+        name: document.getElementById("editName").value,
+        description: document.getElementById("editDescription").value,
+        price,
+        stock
+      };
+
+      const res = await fetch("/api/products/" + currentProduct._id, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer " + token,
+        },
+        body: JSON.stringify(updated),
+      });
+
+      if (res.ok) {
+        modal.style.display = "none";
+        loadProducts();
+      }
+    };
+
+    // --- Modal crear ---
+    document.getElementById("newProduct").onclick = () => createModal.style.display = "flex";
+    document.getElementById("cancelCreate").onclick = () => createModal.style.display = "none";
+
+    document.getElementById("createProduct").onclick = async () => {
+      const name = document.getElementById("newName").value.trim();
+      const description = document.getElementById("newDescription").value.trim();
+      const price = parseFloat(document.getElementById("newPrice").value);
+      const stock = parseInt(document.getElementById("newStock").value);
+
+      if (!name || !description || isNaN(price) || price < 0.01 || isNaN(stock) || stock < 0) return;
+
+      const res = await fetch("/api/products", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer " + token,
+        },
+        body: JSON.stringify({ name, description, price, stock }),
+      });
+
+      if (res.ok) {
+        createModal.style.display = "none";
+        loadProducts();
+      }
+    };
+  </script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+

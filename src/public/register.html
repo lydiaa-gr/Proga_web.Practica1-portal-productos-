@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Registro - Portal de Productos</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <h2>Crear cuenta</h2>
+  <form id="registerForm">
+    <input type="text" id="username" placeholder="Nombre de usuario" required>
+    <input type="email" id="email" placeholder="Correo electrónico" required>
+    <input type="password" id="password" placeholder="Contraseña" required>
+    <button type="submit">Registrarse</button>
+  </form>
+
+  <p>¿Ya tienes cuenta? <a href="index.html">Inicia sesión aquí</a></p>
+
+  <script>
+    document.getElementById("registerForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      const username = document.getElementById("username").value;
+      const email = document.getElementById("email").value;
+      const password = document.getElementById("password").value;
+
+      const res = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, email, password })
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        alert("✅ Usuario registrado correctamente. Ahora puedes iniciar sesión.");
+        window.location.href = "index.html";
+      } else {
+        alert(data.message || "❌ Error al registrarse");
+      }
+    });
+  </script>
+</body>
+</html>
+

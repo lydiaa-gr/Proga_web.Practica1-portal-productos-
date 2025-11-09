@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>💬 Chat en tiempo real</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    body {
+      font-family: "Segoe UI", Arial, sans-serif;
+      max-width: 700px;
+      margin: 40px auto;
+      background-color: #f5f6fa;
+      border-radius: 10px;
+      padding: 25px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+
+    h1 {
+      text-align: center;
+      color: #0077cc;
+      margin-bottom: 10px;
+    }
+
+    #userInfo {
+      text-align: center;
+      font-size: 14px;
+      color: #555;
+      margin-bottom: 15px;
+    }
+
+    #messages {
+      list-style-type: none;
+      padding: 10px;
+      max-height: 400px;
+      overflow-y: auto;
+      border: 1px solid #ccc;
+      background: white;
+      border-radius: 8px;
+      margin-bottom: 15px;
+    }
+
+    #messages li {
+      padding: 8px 12px;
+      margin: 5px 0;
+      border-radius: 8px;
+      font-size: 14px;
+      line-height: 1.4;
+      word-wrap: break-word;
+    }
+
+    /* Mensajes del admin */
+    .msg-admin {
+      background-color: #e7f0ff;
+      border-left: 4px solid #007bff;
+      color: #003f88;
+    }
+
+    /* Mensajes del usuario actual */
+    .msg-me {
+      background-color: #dcf8c6;
+      border-left: 4px solid #34b7f1;
+      font-weight: bold;
+      color: #333;
+    }
+
+    /* Mensajes de otros usuarios */
+    .msg-other {
+      background-color: #f1f0f0;
+      border-left: 4px solid #ccc;
+      color: #333;
+    }
+
+    .date-separator {
+      text-align: center;
+      font-size: 12px;
+      color: #888;
+      margin: 10px 0;
+      font-style: italic;
+    }
+
+    #form {
+      display: flex;
+      gap: 5px;
+    }
+
+    #input {
+      flex: 1;
+      padding: 10px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+      outline: none;
+    }
+
+    #form button {
+      padding: 10px 15px;
+      border: none;
+      background-color: #0077cc;
+      color: white;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+
+    #form button:hover {
+      background-color: #005fa3;
+    }
+
+    button.back {
+      display: block;
+      margin: 0 auto 15px;
+      background-color: #888;
+      border: none;
+      color: white;
+      padding: 8px 15px;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    button.back:hover {
+      background-color: #666;
+    }
+  </style>
+</head>
+<body>
+  <h1>💬 Chat global</h1>
+  <p id="userInfo"></p>
+  <button class="back" onclick="window.location.href='products.html'">⬅️ Volver</button>
+
+  <ul id="messages"></ul>
+
+  <form id="form">
+    <input id="input" autocomplete="off" placeholder="Escribe un mensaje..." />
+    <button>Enviar</button>
+  </form>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    // --- Verificar sesión ---
+    const token = localStorage.getItem("token");
+    const user = JSON.parse(localStorage.getItem("user"));
+
+    if (!token || !user) {
+      alert("⚠️ Debes iniciar sesión primero.");
+      window.location.href = "index.html";
+    }
+
+    document.getElementById("userInfo").innerText = `Conectado como: ${user.username} (${user.role})`;
+
+    // --- Conectar al servidor con token ---
+    const socket = io({ auth: { token } });
+    const messages = document.getElementById('messages');
+    const form = document.getElementById('form');
+    const input = document.getElementById('input');
+
+    let lastDate = null;
+
+    // 🕓 Formato de hora
+    function formatTime(dateString) {
+      const date = new Date(dateString);
+      const hours = date.getHours().toString().padStart(2, '0');
+      const minutes = date.getMinutes().toString().padStart(2, '0');
+      return `${hours}:${minutes}`;
+    }
+
+    // 📅 Formato de fecha
+    function formatDate(dateString) {
+      const date = new Date(dateString);
+      const today = new Date();
+      const sameDay =
+        date.getDate() === today.getDate() &&
+        date.getMonth() === today.getMonth() &&
+        date.getFullYear() === today.getFullYear();
+      return sameDay ? "Hoy" : date.toLocaleDateString('es-ES');
+    }
+
+    // 💬 Añadir mensaje al chat
+    function addMessage(msg) {
+      const msgDate = formatDate(msg.createdAt);
+      if (lastDate !== msgDate) {
+        const separator = document.createElement('div');
+        separator.classList.add('date-separator');
+        separator.textContent = msgDate;
+        messages.appendChild(separator);
+        lastDate = msgDate;
+      }
+
+      const li = document.createElement('li');
+      li.innerHTML = `[${formatTime(msg.createdAt)}] <b>${msg.username}</b>: ${msg.text}`;
+
+      // Asignar clase según tipo de usuario
+      if (msg.username === 'admin') li.classList.add('msg-admin');
+      else if (msg.username === user.username) li.classList.add('msg-me');
+      else li.classList.add('msg-other');
+
+      messages.appendChild(li);
+      messages.scrollTop = messages.scrollHeight;
+    }
+
+    // 📜 Mostrar historial de mensajes guardados
+    socket.on('chat history', (msgs) => {
+      messages.innerHTML = "";
+      lastDate = null;
+      msgs.forEach(addMessage);
+    });
+
+    // 🆕 Mostrar mensajes nuevos
+    socket.on('chat message', addMessage);
+
+    // ✉️ Enviar mensaje nuevo
+    form.addEventListener('submit', function(e) {
+      e.preventDefault();
+      const text = input.value.trim();
+      if (text !== '') {
+        socket.emit('chat message', text);
+        input.value = '';
+      }
+    });
+
+    // ⚠️ Manejar errores de conexión
+    socket.on('connect_error', (err) => {
+      alert(`No se pudo conectar: ${err.message}`);
+      console.error("Socket error:", err);
+    });
+  </script>
+</body>
+</html>
+
+
+
+
